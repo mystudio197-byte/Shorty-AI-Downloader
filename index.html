@@ -1,1 +1,214 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shorty AI Downloader</title><style>:root{font-family:Inter,system-ui,Arial;background:#080e23;color:#eef2ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0%,#33266a 0%,transparent 35%),#080e23}header,main,footer{max-width:1100px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:center}.logo{font-size:22px;font-weight:850}.logo span{color:#8c82ff}.pill{border:1px solid #626c92;padding:9px 16px;border-radius:25px;color:#d8dcf5}section.hero{text-align:center;padding:75px 10px 55px}h1{font-size:clamp(38px,6vw,68px);line-height:1.1;margin:0}h1 em{font-style:normal;color:#9e90ff}p{color:#adb7d5;line-height:1.6}.subtitle{font-size:19px}.panel,.plan{background:#141c37;border:1px solid #2e3a61;border-radius:22px;padding:24px}.panel{max-width:780px;margin:34px auto}.platforms{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-bottom:22px}.platforms span{background:#222d4d;border-radius:20px;padding:8px 13px;font-size:13px}.inputrow{display:flex;gap:10px}input{background:#0b122a;border:1px solid #485477;border-radius:12px;padding:16px;color:white;flex:1;min-width:0;font-size:16px}button{background:linear-gradient(115deg,#487dff,#9163f5);color:white;border:0;border-radius:12px;padding:15px 22px;font-weight:750;cursor:pointer}button:hover{filter:brightness(1.12)}.status{margin-top:15px;color:#cbd5ff;min-height:22px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.plan h3{font-size:23px}.price{font-size:36px;font-weight:800;color:white}.plan ul{color:#bec7e4;line-height:2;padding-left:18px}h2{text-align:center;font-size:32px;margin-top:70px}.upload{text-align:center;max-width:780px;margin:22px auto}.upload input{max-width:100%}video{width:100%;max-height:400px;margin-top:18px;border-radius:14px}footer{text-align:center;color:#8d98b6;font-size:13px;margin-top:50px}@media(max-width:700px){.cards{grid-template-columns:1fr}.inputrow{flex-direction:column}section.hero{padding-top:45px}header{padding:20px}}</style></head><body><header><div class="logo">SHORTY <span>AI</span></div><div class="pill">Downloader & Editor</div></header><main><section class="hero"><h1>Save Smarter.<br><em>Create Better.</em></h1><p class="subtitle">Your home for authorized video imports, HD editing and effortless exports.</p><div class="panel"><div class="platforms"><span>Facebook</span><span>Instagram</span><span>YouTube</span><span>TikTok</span></div><div class="inputrow"><input id="url" type="url" placeholder="Paste a video link here" aria-label="Video URL"><button id="check">Check Video</button></div><div class="status" id="status" role="status"></div><p style="font-size:12px">Links are checked for source identification only. Platform downloads require authorized integrations and permissions.</p></div></section><h2>Edit your own videos</h2><div class="panel upload"><p>Upload a video you own or have permission to use. Preview it and choose playback start/end points. Full export processing will be added with the backend.</p><input id="file" type="file" accept="video/*" aria-label="Upload video"><video id="preview" controls hidden></video><div class="status" id="fileStatus"></div></div><h2>Simple pricing</h2><div class="cards"><div class="plan"><h3>Free</h3><div class="price">$0</div><p>With advertisements</p><ul><li>Video link checker</li><li>Basic video preview</li><li>Limited eligible imports</li></ul><button onclick="alert('Free account registration is coming soon.')">Get Started</button></div><div class="plan"><h3>Monthly Pro</h3><div class="price">$1.49</div><p>Per month · Ad-free</p><ul><li>Expanded import limits</li><li>Advanced editing (planned)</li><li>HD / 4K where supported</li></ul><button onclick="alert('Secure subscription checkout is coming soon.')">Choose Monthly</button></div><div class="plan"><h3>Yearly Pro</h3><div class="price">$9.99</div><p>Per year · Save 44%</p><ul><li>Everything in Monthly Pro</li><li>Ad-free experience</li><li>Best value</li></ul><button onclick="alert('Secure subscription checkout is coming soon.')">Choose Yearly</button></div></div></main><footer>© 2026 Shorty AI Downloader · Download and edit only videos you own or are authorized to use. · Prototype — payments and downloads not yet active.</footer><script>const u=document.getElementById('url'),s=document.getElementById('status');document.getElementById('check').onclick=()=>{try{let x=new URL(u.value);if(!['https:','http:'].includes(x.protocol))throw Error();let host=x.hostname.toLowerCase();let p=host==='youtu.be'||host==='youtube.com'||host.endsWith('.youtube.com')?'YouTube':host==='tiktok.com'||host.endsWith('.tiktok.com')?'TikTok':host==='instagram.com'||host.endsWith('.instagram.com')?'Instagram':host==='facebook.com'||host.endsWith('.facebook.com')||host==='fb.watch'?'Facebook':null;s.textContent=p?`${p} link detected. Authorized download integration is not yet connected.`:'Link recognized. Direct media imports will require an authorized source.'}catch{s.textContent='Please enter a valid http or https video URL.'}};let prev=document.getElementById('preview'),last=null;document.getElementById('file').onchange=e=>{let f=e.target.files[0];if(last)URL.revokeObjectURL(last);if(!f)return;if(!f.type.startsWith('video/')){document.getElementById('fileStatus').textContent='Please choose a video file.';return}last=URL.createObjectURL(f);prev.src=last;prev.hidden=false;document.getElementById('fileStatus').textContent=`Ready to preview: ${f.name}`};</script></body></html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Shorty AI Downloader - authorized video tools">
+<title>Shorty AI Downloader</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#080d20;color:white}
+header{padding:24px;text-align:center;background:#111a35}
+.logo{font-size:28px;font-weight:bold}
+.logo span{color:#a78bfa}
+main{max-width:950px;margin:auto;padding:22px}
+.hero{text-align:center;padding:45px 0}
+h1{font-size:clamp(32px,6vw,55px);margin:10px 0}
+h1 span{color:#a78bfa}
+p{color:#b9c5e3;line-height:1.6}
+.card{background:#151f3c;border:1px solid #344469;border-radius:18px;padding:24px;margin:22px 0}
+.platforms{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:20px}
+.platforms span{background:#29375c;padding:9px 13px;border-radius:25px}
+input[type=url]{width:100%;padding:15px;border:1px solid #53658d;border-radius:10px;background:#0b132b;color:white;font-size:16px}
+button,.btn{background:linear-gradient(120deg,#347dff,#915de8);border:0;color:white;border-radius:10px;padding:14px 20px;font-size:16px;cursor:pointer;margin-top:12px;text-decoration:none;display:inline-block}
+button:disabled{opacity:.5}
+label{display:block;color:#c6d1ea;margin-top:15px;line-height:1.6}
+#status{margin-top:16px;color:#c4d6ff;overflow-wrap:anywhere}
+.hidden{display:none}
+video{width:100%;max-height:360px;margin-top:15px;border-radius:12px;background:black}
+input[type=file]{max-width:100%}
+.library-item{padding:13px;border:1px solid #354469;border-radius:10px;margin-top:10px;overflow-wrap:anywhere}
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.price{text-align:center;background:#151f3c;padding:25px;border-radius:15px;border:1px solid #344469}
+.price strong{display:block;font-size:32px;margin:12px}
+.note{font-size:13px;color:#b8c5e4}
+footer{text-align:center;padding:30px;color:#9baacf}
+@media(max-width:650px){.prices{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">SHORTY <span>AI</span></div>
+<p>Video Downloader & Editor - Beta</p>
+</header>
+<main>
+<section class="hero">
+<h1>Save Smarter.<br><span>Create Better.</span></h1>
+<p>Import your videos and download authorized direct MP4 files.</p>
+</section>
+
+<section class="card">
+<div class="platforms">
+<span>Facebook</span><span>Instagram</span>
+<span>YouTube</span><span>TikTok</span><span>Direct MP4</span>
+</div>
+<h2>Check Video Link</h2>
+<form id="linkForm">
+<input id="videoUrl" type="url" placeholder="https://example.com/video.mp4" required>
+<label>
+<input id="permission" type="checkbox">
+I own this video or have permission to download it, and my use complies with the source's terms.
+</label>
+<button type="submit">Check Video</button>
+</form>
+<div id="status" role="status"></div>
+<div id="actions" class="hidden">
+<button id="downloadBtn" type="button">Download MP4</button>
+<a id="openLink" class="btn" target="_blank" rel="noopener noreferrer">Open File</a>
+</div>
+<p class="note">Direct MP4 downloads require HTTPS and permission from the source server. Social-media post links are not direct video files.</p>
+</section>
+
+<section class="card">
+<h2>Import Your Video</h2>
+<input type="file" id="videoFile" accept="video/*">
+<p id="fileStatus"></p>
+<video id="player" controls playsinline></video>
+</section>
+
+<section class="card">
+<h2>My Video Library</h2>
+<p class="note">Your imported videos stay on your device and are available until you refresh or close the page.</p>
+<div id="library">No videos imported yet.</div>
+</section>
+
+<h2>Subscription Plans</h2>
+<div class="prices">
+<div class="price"><h3>Free</h3><strong>$0</strong><p>Beta access</p></div>
+<div class="price"><h3>Monthly Pro</h3><strong>$1.49</strong><p>Per month - Coming soon</p></div>
+<div class="price"><h3>Yearly Pro</h3><strong>$9.99</strong><p>Per year - Coming soon</p></div>
+</div>
+<p class="note">Subscriptions, advertisements, and AI editing are not active yet.</p>
+</main>
+<footer>© 2026 Shorty AI Downloader</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let directUrl = null;
+const entries = [];
+
+function getPlatform(host) {
+  if (host === "youtu.be" || host === "youtube.com" || host.endsWith(".youtube.com")) return "YouTube";
+  if (host === "facebook.com" || host.endsWith(".facebook.com") || host === "fb.watch") return "Facebook";
+  if (host === "instagram.com" || host.endsWith(".instagram.com")) return "Instagram";
+  if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "TikTok";
+  return null;
+}
+
+$("linkForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  directUrl = null;
+  $("actions").classList.add("hidden");
+  let url;
+  try {
+    url = new URL($("videoUrl").value.trim());
+    if (url.protocol !== "https:" || url.username || url.password) throw Error("Enter a valid HTTPS video URL without login details.");
+  } catch(err) {
+    $("status").textContent = err.message;
+    return;
+  }
+  const platform = getPlatform(url.hostname.toLowerCase());
+  if (platform) {
+    $("status").textContent = platform + " link detected. Automatic downloading of social-media posts is not supported. Use an authorized direct MP4 file or import a local video.";
+    return;
+  }
+  if (!url.pathname.toLowerCase().endsWith(".mp4")) {
+    $("status").textContent = "Please provide a direct HTTPS MP4 file URL.";
+    return;
+  }
+  if (!$("permission").checked) {
+    $("status").textContent = "Please confirm your permission to download this video.";
+    return;
+  }
+  directUrl = url.href;
+  $("openLink").href = directUrl;
+  $("actions").classList.remove("hidden");
+  $("status").textContent = "Direct MP4 detected. You can try downloading it.";
+});
+
+$("downloadBtn").addEventListener("click", async function() {
+  if (!directUrl || !$("permission").checked) return;
+  const button = $("downloadBtn");
+  button.disabled = true;
+  $("status").textContent = "Downloading video...";
+  try {
+    const response = await fetch(directUrl, {
+      mode: "cors",
+      credentials: "omit"
+    });
+    if (!response.ok) throw Error("HTTP " + response.status);
+    const type = response.headers.get("content-type") || "";
+    if (type && !type.includes("video/") && !type.includes("application/octet-stream")) throw Error("Source did not return a video file.");
+    const blob = await response.blob();
+    if (!blob.size) throw Error("Empty video file.");
+    const tempUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = tempUrl;
+    a.download = "shorty-video.mp4";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(tempUrl), 60000);
+    $("status").textContent = "Download started. Check your Downloads folder.";
+  } catch(err) {
+    $("status").textContent = "Download blocked by the source server or browser. Try Open File if the source allows saving. " + err.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("videoFile").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("video/")) {
+    $("fileStatus").textContent = "Please select a video.";
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  entries.push({name:file.name,url});
+  $("player").src = url;
+  $("fileStatus").textContent = "Video imported: " + file.name;
+  renderLibrary();
+});
+
+function renderLibrary() {
+  const library = $("library");
+  library.replaceChildren();
+  entries.forEach((entry,index) => {
+    const div = document.createElement("div");
+    div.className = "library-item";
+    const name = document.createElement("strong");
+    name.textContent = entry.name;
+    const play = document.createElement("button");
+    play.textContent = "Play";
+    play.onclick = () => $("player").src = entry.url;
+    const remove = document.createElement("button");
+    remove.textContent = "Remove";
+    remove.onclick = () => {
+      if ($("player").src === entry.url) {
+        $("player").removeAttribute("src");
+        $("player").load();
+      }
+      URL.revokeObjectURL(entry.url);
+      entries.splice(index,1);
+      renderLibrary();
+    };
+    div.append(name,document.createElement("br"),play,remove);
+    library.appendChild(div);
+  });
+  if (!entries.length) library.textContent = "No videos imported yet.";
+}
+</script>
+</body>
+</html>
