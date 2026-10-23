@@ -119,10 +119,25 @@ $("linkForm").addEventListener("submit", function(e) {
     return;
   }
   const platform = getPlatform(url.hostname.toLowerCase());
-  if (platform) {
-    $("status").textContent = platform + " link detected. Automatic downloading of social-media posts is not supported. Use an authorized direct MP4 file or import a local video.";
-    return;
-  }
+ 
+if (platform) {
+  $("status").textContent =
+    platform + " link detected. Open the original post, or import a video file you own or have permission to use.";
+
+  $("openLink").href = url.href;
+  $("openLink").textContent = "Open on " + platform;
+  $("actions").classList.remove("hidden");
+  $("downloadBtn").style.display = "none";
+
+  return;
+}
+
+$("downloadBtn").style.display = "";
+$("openLink").textContent = "Open File";
+
+
+
+
   if (!url.pathname.toLowerCase().endsWith(".mp4")) {
     $("status").textContent = "Please provide a direct HTTPS MP4 file URL.";
     return;
