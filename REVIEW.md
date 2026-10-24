@@ -34,3 +34,12 @@ The privacy copy describes this implementation; the owner should add a public co
 - Search with no matches: correct empty state.
 - All 10 automated tests passed again after the export change.
 - End-to-end Facebook OAuth/import and mobile-device QA remain pending. Meta API permissions and video access were verified earlier in Graph API Explorer; the new production backend code has not been deployed.
+
+
+## Checkpoint — 2026-10-24: OAuth recovery and touch controls prepared
+
+Preserved the existing implementation and earlier verified import/trim/export work. Prepared changes on `development/shorty-studio`: detect a closed OAuth popup, expire a pending attempt after ten minutes, prevent duplicate pending connections, stop polling on success, and restore a usable Connect button. Library action buttons now have a minimum 44px height and width; other `.button` controls use the same minimum.
+
+Validation: all 6 local unit tests and frontend syntax checks pass. New tests cover popup closure, ten-minute expiry, and cancellation of polling after a successful connection. Previous staging checks at 320/390/768/844px showed no document overflow; these results predate the new CSS. The current changes still need live staging browser verification. The cloud browser cannot reach the local preview server; no successful browser test of unpublished CSS is claimed.
+
+Changes are not pushed or deployed because GitHub write access requires authentication. Physical Android, iPhone/Safari and tablet testing, mobile downloads/share behavior, maximum-size media and live Facebook Page imports remain pending. Do not infer physical-device compatibility from desktop iframe widths. Production and main remain unchanged.

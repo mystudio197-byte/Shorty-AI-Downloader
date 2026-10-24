@@ -10,3 +10,13 @@ export function outputSize(width,height,resolution){
  return {width:Math.max(2,Math.round(width*scale/2)*2),height:Math.max(2,Math.round(height*scale/2)*2)};
 }
 export function videoName(name){return String(name||'video.mp4').replace(/[\u0000-\u001f/\\]/g,'_').slice(0,180);}
+export function watchOAuthPopup(popup,onEnd,{now=Date.now,schedule=setInterval,cancel=clearInterval}={}){
+ const started=now();let stopped=false;
+ const stop=()=>{if(!stopped){stopped=true;cancel(timer);}};
+ const timer=schedule(()=>{
+  if(stopped)return;
+  const reason=popup.closed?'closed':now()-started>=600000?'expired':null;
+  if(reason){stop();onEnd(reason);}
+ },750);
+ return stop;
+}

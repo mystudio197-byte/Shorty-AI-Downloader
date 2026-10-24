@@ -1,8 +1,9 @@
-import { trimRange, outputSize, videoName } from './media-utils.js';
+import { trimRange, outputSize, videoName, watchOAuthPopup } from './media-utils.js';
 const API = 'https://shorty-ai-backend.onrender.com';
 const $ = id => document.getElementById(id);
 const LIMIT = 100 * 1024 * 1024;
 let db, entries=[], active, activeURL, session=null, popup=null, cursor=null, exporting=false, cancelExport=null, previewing=false;
+let stopOAuthWatch=null;
 const urls=new Map();
 function notice(message){$('notice').textContent=message;$('notice').hidden=false;}
 function humanSize(n){return n>=1024**3?(n/1024**3).toFixed(1)+' GB':(n/1024**2).toFixed(1)+' MB';}
@@ -53,14 +54,21 @@ async function api(path,{binary=false}={}){
  return binary?r.blob():r.json();
 }
 function disconnected(){$('disconnect').hidden=true;$('connect').hidden=false;$('page-tools').hidden=true;$('page-videos').replaceChildren();$('more-videos').hidden=true;$('facebook-status').textContent='Connect to view videos from Pages you manage.';cursor=null;}
+function finishOAuthWatch(){stopOAuthWatch?.();stopOAuthWatch=null;$('connect').disabled=false;}
 $('connect').onclick=async()=>{
+ if(stopOAuthWatch){popup?.focus();return;}
  popup=window.open('about:blank','shorty-facebook','width=620,height=760');
  if(!popup){notice('Allow a popup for Shorty to connect Facebook.');return;}
- try{const s=await api('/api/facebook/status');if(!s.configured)throw new Error('Facebook setup is pending on the backend. Your library and local editing are available now.');popup.location=API+'/auth/facebook/start';$('facebook-status').textContent='Complete authorization in the Facebook window.';}catch(e){popup.close();notice(e.message);}
+ const currentPopup=popup;$('connect').disabled=true;
+ stopOAuthWatch=watchOAuthPopup(currentPopup,reason=>{
+  const message=reason==='closed'?'Facebook connection was closed. Select Connect Facebook to try again.':'Facebook login expired. Select Connect Facebook to start a fresh login.';
+  finishOAuthWatch();popup=null;$('facebook-status').textContent=message;notice(message);
+ });
+ try{const s=await api('/api/facebook/status');if(!s.configured)throw new Error('Facebook setup is pending on the backend. Your library and local editing are available now.');if(popup!==currentPopup)return;currentPopup.location=API+'/auth/facebook/start';$('facebook-status').textContent='Complete authorization in the Facebook window.';}catch(e){currentPopup.close();finishOAuthWatch();popup=null;disconnected();notice(e.message);}
 };
 window.addEventListener('message',async e=>{
  if(e.origin!==new URL(API).origin||e.source!==popup||e.data?.type!=='shorty-facebook-connected'||!/^[A-Za-z0-9_-]{43}$/.test(e.data.session||''))return;
- session=e.data.session;popup=null;$('disconnect').hidden=false;$('connect').hidden=true;try{await loadPages();}catch(error){notice(error.message);}
+ session=e.data.session;finishOAuthWatch();popup=null;$('disconnect').hidden=false;$('connect').hidden=true;try{await loadPages();}catch(error){notice(error.message);}
 });
 $('disconnect').onclick=async()=>{try{await api('/api/facebook/disconnect');}catch{}finally{session=null;disconnected();notice('Disconnected from Facebook. Imported device copies remain in your library.');}};
 async function loadPages(){const data=await api('/api/facebook/pages');$('pages').replaceChildren();for(const p of data.pages){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;$('pages').append(o);}$('page-tools').hidden=!data.pages.length;$('facebook-status').textContent=data.pages.length?'Connected. Choose a Page to browse its videos.':'No authorized Pages found. Reconnect and select a Page you manage.';if(data.pages.length)await loadVideos();}
