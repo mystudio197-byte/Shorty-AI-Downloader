@@ -1,9 +1,10 @@
-import { trimRange, outputSize, videoName, watchOAuthPopup } from './media-utils.js';
+import { trimRange, outputSize, videoName, watchOAuthPopup, saveVideoFile } from './media-utils.js';
 const API = 'https://shorty-ai-backend.onrender.com';
 const $ = id => document.getElementById(id);
 const LIMIT = 100 * 1024 * 1024;
 let db, entries=[], active, activeURL, session=null, popup=null, cursor=null, exporting=false, cancelExport=null, previewing=false;
 let stopOAuthWatch=null;
+let lastExport=null,saving=false;
 const urls=new Map();
 function notice(message){$('notice').textContent=message;$('notice').hidden=false;}
 function humanSize(n){return n>=1024**3?(n/1024**3).toFixed(1)+' GB':(n/1024**2).toFixed(1)+' MB';}
@@ -29,11 +30,21 @@ $('files').onchange=e=>importFiles(e.target.files);
 for(const event of ['dragenter','dragover'])$('dropzone').addEventListener(event,e=>{e.preventDefault();$('dropzone').classList.add('dragging');});
 for(const event of ['dragleave','drop'])$('dropzone').addEventListener(event,e=>{e.preventDefault();$('dropzone').classList.remove('dragging');if(event==='drop')importFiles(e.dataTransfer.files);});
 function urlFor(entry){if(!urls.has(entry.id))urls.set(entry.id,URL.createObjectURL(entry.blob));return urls.get(entry.id);}
-function download(entry){const a=document.createElement('a');a.href=urlFor(entry);a.download=entry.name;document.body.append(a);a.click();a.remove();}
+function requestBrowserDownload(entry){const a=document.createElement('a');try{a.href=urlFor(entry);a.download=entry.name;document.body.append(a);a.click();}finally{a.remove();}}
+async function download(entry,{browserOnly=false}={}){
+ if(saving){notice('Finish the current save before starting another.');return;}
+ saving=true;$('save-export').disabled=true;
+ try{
+  const pickFile=!browserOnly&&window.isSecureContext&&typeof window.showSaveFilePicker==='function'?window.showSaveFilePicker.bind(window):undefined;
+  const result=await saveVideoFile(entry,{pickFile,requestDownload:requestBrowserDownload,onState:({state,message})=>{$('download-status').hidden=false;$('download-status').dataset.state=state;$('download-status').textContent=message;notice(message);}});
+  if(result.state==='failed'&&pickFile)$('notice').append(' ',button('Try browser download',()=>download(entry,{browserOnly:true})));
+ }finally{saving=false;$('save-export').disabled=false;}
+}
+$('save-export').onclick=()=>lastExport?download(lastExport):undefined;
 async function remove(entry){
- if(exporting){notice('Finish or cancel the export before removing videos.');return;}
+ if(exporting||saving){notice('Finish or cancel the current export or save before removing videos.');return;}
  // Keep a recoverable copy in memory for one-step undo; no bulk delete.
- await store('readwrite',s=>s.delete(entry.id));if(active?.id===entry.id){active=null;$('player').pause();$('player').removeAttribute('src');$('player').load();$('player-placeholder').hidden=false;$('edit-fields').disabled=true;$('selected-name').textContent='No video selected';}
+ await store('readwrite',s=>s.delete(entry.id));if(lastExport?.id===entry.id){lastExport=null;$('save-export').hidden=true;}if(active?.id===entry.id){active=null;$('player').pause();$('player').removeAttribute('src');$('player').load();$('player-placeholder').hidden=false;$('edit-fields').disabled=true;$('selected-name').textContent='No video selected';}
  if(urls.has(entry.id)){URL.revokeObjectURL(urls.get(entry.id));urls.delete(entry.id);}await reload();notice('Removed from this device.');const undo=button('Undo',async()=>{try{await store('readwrite',s=>s.put(entry));await reload();notice('Video restored.');}catch(e){notice(e.message);}});$('notice').append(' ',undo);
 }
 function render(){
@@ -43,7 +54,7 @@ function render(){
  $('library').replaceChildren();for(const entry of list){const card=document.createElement('article');card.className='video-card';const thumb=document.createElement('div');thumb.className='thumb';if(entry.thumbnail){const img=document.createElement('img');img.alt='';img.src=entry.thumbnail;thumb.append(img);}const duration=document.createElement('span');duration.className='duration';duration.textContent=time(entry.duration);thumb.append(duration);const body=document.createElement('div');body.className='video-body';const h=document.createElement('h3');h.textContent=entry.name;h.title=entry.name;const meta=document.createElement('div');meta.className='video-meta';const source=document.createElement('span');source.textContent=entry.source==='facebook'?'Facebook Page':entry.source==='export'?'Edited export':'Uploaded video';const size=document.createElement('span');size.textContent=humanSize(entry.blob.size);meta.append(source,size);const actions=document.createElement('div');actions.className='card-actions';actions.append(button('✂ Edit',()=>select(entry)),button('Save',()=>download(entry)),button('Remove',()=>remove(entry).catch(e=>notice(e.message)),'remove'));body.append(h,meta,actions);card.append(thumb,body);$('library').append(card);}
 }
 $('search').oninput=render;$('filter').onchange=render;
-function select(entry){if(exporting){notice('Finish or cancel the current export first.');return;}previewing=false;active=entry;activeURL=urlFor(entry);$('player').src=activeURL;$('player-placeholder').hidden=true;$('selected-name').textContent=entry.name;$('edit-fields').disabled=false;$('start').value=0;$('end').value=entry.duration.toFixed(2);$('export-status').textContent='';$('editor-section').scrollIntoView({behavior:'smooth'});}
+function select(entry){if(exporting){notice('Finish or cancel the current export first.');return;}previewing=false;active=entry;activeURL=urlFor(entry);$('player').src=activeURL;$('player-placeholder').hidden=true;$('selected-name').textContent=entry.name;$('edit-fields').disabled=false;$('start').value=0;$('end').value=entry.duration.toFixed(2);$('export-status').textContent='';lastExport=null;$('save-export').hidden=true;$('editor-section').scrollIntoView({behavior:'smooth'});}
 function range(){if(!active)throw new Error('Select a video first.');return trimRange($('start').value,$('end').value,active.duration);}
 $('set-start').onclick=()=>{$('start').value=$('player').currentTime.toFixed(2);};$('set-end').onclick=()=>{$('end').value=$('player').currentTime.toFixed(2);};
 $('preview').onclick=async()=>{try{const r=range();$('player').currentTime=r.start;previewing=true;await $('player').play();}catch(e){notice(e.message);}};
@@ -81,11 +92,13 @@ $('pages').onchange=()=>loadVideos().catch(e=>notice(e.message));$('refresh-page
 $('direct-form').onsubmit=async e=>{e.preventDefault();try{const u=new URL($('direct-url').value);if(u.protocol!=='https:'||u.username||u.password||!u.pathname.toLowerCase().endsWith('.mp4'))throw new Error('Enter a direct HTTPS MP4 file URL.');if(!$('direct-rights').checked)throw new Error('Please confirm your permission.');const blob=await api('/api/download?authorized=yes&url='+encodeURIComponent(u.href),{binary:true});await add(blob,decodeURIComponent(u.pathname.split('/').pop()));}catch(error){notice(error.message);}};
 $('export').onclick=async()=>{
  if(exporting)return;
+ if(saving){notice('Finish the current save before exporting another video.');return;}
  let worker,watchdog;
  try{
   const r=range(),entry=active,size=outputSize(entry.width,entry.height,$('resolution').value);
   if(!window.WebAssembly||!window.Worker)throw new Error('This browser cannot run local video export. Please use a current desktop browser.');
   exporting=true;$('player').pause();$('edit-fields').disabled=true;$('cancel-export').hidden=false;$('export-progress').hidden=false;$('export-progress').value=0;
+  lastExport=null;$('save-export').hidden=true;$('download-status').hidden=true;$('export-status').dataset.state='encoding';
   $('export-status').textContent='Loading local MP4 editor (about 32 MB on first use)…';
   const input=await entry.blob.arrayBuffer();
   worker=new Worker(new URL('./vendor/ffmpeg/export-worker.js',import.meta.url));
@@ -96,8 +109,8 @@ $('export').onclick=async()=>{
    worker.onmessage=({data})=>{if(data.error)reject(new Error(data.error));else if(data.output)resolve(data.output);else{$('export-progress').value=data.progress;$('export-status').textContent='Encoding your MP4 on this device… '+Math.round(data.progress)+'%';}};
    worker.postMessage({input,start:r.start,duration:r.end-r.start,width:size.width,height:size.height,mute:$('mute').checked},[input]);
   });
-  const blob=new Blob([output],{type:'video/mp4'});const exported=await add(blob,entry.name.replace(/\.[^.]+$/,'')+'-trimmed.mp4','export');download(exported);$('export-progress').value=100;$('export-status').textContent='MP4 export saved to your library and downloaded.';
- }catch(e){$('export-status').textContent=e.message;notice(e.message);}finally{clearTimeout(watchdog);worker?.terminate();exporting=false;cancelExport=null;$('edit-fields').disabled=!active;$('cancel-export').hidden=true;}
+  const blob=new Blob([output],{type:'video/mp4'});lastExport=await add(blob,entry.name.replace(/\.[^.]+$/,'')+'-trimmed.mp4','export');$('export-progress').value=100;$('export-status').dataset.state='completed';$('export-status').textContent='Export completed. Saved to your library. Choose Save exported video to save a file.';$('save-export').hidden=false;
+ }catch(e){$('export-status').dataset.state=e.message==='Export cancelled. Your original is unchanged.'?'cancelled':'failed';$('export-status').textContent=e.message;notice(e.message);}finally{clearTimeout(watchdog);worker?.terminate();exporting=false;cancelExport=null;$('edit-fields').disabled=!active;$('cancel-export').hidden=true;}
 };
 window.addEventListener('beforeunload',e=>{if(exporting){e.preventDefault();e.returnValue='';}});
 try{db=await openDB();await reload();}catch(e){notice('Device storage is unavailable. Enable site storage or use a regular browser window.');empty($('library'),'Storage unavailable','Your existing website and original files are unchanged.');}

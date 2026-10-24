@@ -43,3 +43,22 @@ Preserved the existing implementation and earlier verified import/trim/export wo
 Validation: all 6 local unit tests and frontend syntax checks pass. New tests cover popup closure, ten-minute expiry, and cancellation of polling after a successful connection. Previous staging checks at 320/390/768/844px showed no document overflow; these results predate the new CSS. The current changes still need live staging browser verification. The cloud browser cannot reach the local preview server; no successful browser test of unpublished CSS is claimed.
 
 Changes are not pushed or deployed because GitHub write access requires authentication. Physical Android, iPhone/Safari and tablet testing, mobile downloads/share behavior, maximum-size media and live Facebook Page imports remain pending. Do not infer physical-device compatibility from desktop iframe widths. Production and main remain unchanged.
+
+## Prepared local fix — export and file-save confirmation (2026-10-24)
+
+This proposal is on the existing local `development/shorty-studio` checkout. It has NOT been pushed, published, or deployed; live frontend remains `4ca0bc9`. Both existing draft PRs are preserved.
+
+Root cause by code inspection: the old download helper clicked a Blob anchor and returned no completion evidence, but the export handler unconditionally announced that the file was downloaded. Async encoding/storage and mobile browser save policies require separate verification; an automation timeout does not prove an encoder timeout.
+
+Prepared behavior:
+- Encoding plus successful library persistence produces `Export completed` and a separate `Save exported video` action. Encoding does not automatically request a download.
+- An explicit Save click uses the native save picker only where feature-detected in a secure context. `File saved` is emitted only after write and close both resolve.
+- Other browsers use the existing Blob/anchor mechanism and show only `Download requested`, with explicit notice that completion/cancellation cannot be confirmed.
+- Observed picker aborts are reported as cancelled or stopped by the browser. Observed request/write/close failures are reported as failures, retaining the completed library export and retry control. A native save failure offers an explicit browser-download recovery button; it does not silently fall back after cancellation/failure.
+- Concurrent save dialogs are prevented, and removing a video during an active save is blocked.
+
+Validation: 22 frontend tests pass (16 new save-flow/handler tests plus the previous 6 tests), syntax checks and `git diff --check` pass. Tests simulate DOM, worker output, storage and browser file APIs; they verify ordering and state transitions, not real mobile/browser filesystem compatibility. Previous offline bundled-FFmpeg/ffprobe results remain unchanged because encoding code was not modified.
+
+Unverified: real native picker behavior, real fallback downloads, iPhone/Safari, Android, tablets and the original browser timeout. The browser environment remains blocked by protected credential-state recovery. No new staging browser result is claimed. Native writable close confirmation establishes browser-reported write success, not a guarantee of playback or durable device backup. Browser-managed cancellation after a fallback request remains unobservable.
+
+Next approval gate: publish this reviewed development change/update the existing draft PR, then separately deploy frontend staging for browser verification. No production/main, backend, credentials, consent or paid-resource changes are part of this proposal. Source references: MDN showSaveFilePicker, FileSystemWritableFileStream.write and HTML anchor download documentation.

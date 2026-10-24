@@ -10,6 +10,31 @@ export function outputSize(width,height,resolution){
  return {width:Math.max(2,Math.round(width*scale/2)*2),height:Math.max(2,Math.round(height*scale/2)*2)};
 }
 export function videoName(name){return String(name||'video.mp4').replace(/[\u0000-\u001f/\\]/g,'_').slice(0,180);}
+export async function saveVideoFile(entry,{pickFile,requestDownload,onState=()=>{}}={}){
+ const emit=(state,message)=>{const result={state,message};onState(result);return result;};
+ if(typeof pickFile!=='function'){
+  try{
+   if(typeof requestDownload!=='function')throw new Error('No download method');
+   requestDownload(entry);
+   return emit('requested','Download requested. Check your browser’s Downloads. Shorty cannot confirm completion or cancellation.');
+  }catch{return emit('failed','Download could not be requested. Your library copy is unchanged. Try Save again.');}
+ }
+ let writable,stage='picker';
+ try{
+  emit('choosing','Choose where to save the file.');
+  // Invoke the picker before any await so the Save click supplies user activation.
+  const handle=await pickFile({suggestedName:videoName(entry.name)});
+  stage='writing';emit('saving','Saving file…');
+  writable=await handle.createWritable();
+  await writable.write(entry.blob);
+  await writable.close();
+  return emit('saved','File saved. The browser confirmed the file write.');
+ }catch(error){
+  try{await writable?.abort?.();}catch{}
+  if(stage==='picker'&&error?.name==='AbortError')return emit('cancelled','Save cancelled or stopped by the browser. No completed file save was confirmed. Your library copy is unchanged.');
+  return emit('failed','File save failed or was interrupted. Your library copy is unchanged. Try Save again or use a browser download.');
+ }
+}
 export function watchOAuthPopup(popup,onEnd,{now=Date.now,schedule=setInterval,cancel=clearInterval}={}){
  const started=now();let stopped=false;
  const stop=()=>{if(!stopped){stopped=true;cancel(timer);}};
