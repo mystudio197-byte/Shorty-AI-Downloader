@@ -1,0 +1,10 @@
+{
+  "name": "shorty-studio-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check app.js && node --check media-utils.js",
+    "dev": "node dev-server.cjs"
+  }
+}

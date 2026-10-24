@@ -1,0 +1,64 @@
+# Shorty Studio development review
+
+The existing GitHub Pages deployment remains unchanged. Changes are prepared on `development/shorty-studio`.
+
+## Implemented
+
+Responsive dashboard; IndexedDB video library with thumbnails, search and source filters; multiple local video imports; save original file; remove with one-step undo; trim preview; local export at source size or a capped 480p/720p/1080p; mute export; export cancellation; authorized Facebook Page picker and imports via backend; privacy and data deletion instructions.
+
+No subscriptions, advertising, cloud storage, unauthorized Reel downloads, or paid services were enabled.
+
+## Export limitations
+
+Export uses the single-thread FFmpeg WebAssembly engine in a dedicated worker, producing H.264/AAC MP4 cuts. The engine is loaded locally (about 32 MB on first use); no uploaded video is transmitted for editing. Resolution does not upscale the source. Exports have a five-minute processing timeout and a 100 MB output limit. Large videos may exceed browser memory; use a shorter clip or lower resolution. Sources remain unchanged. Library content is browser/device-local and may be removed by clearing site data or browser storage eviction.
+
+Third-party engine: `@ffmpeg/core` 0.12.10, GPL-2.0-or-later. See `vendor/ffmpeg/NOTICE.md` and the included license. Review corresponding-source distribution requirements before publication.
+
+## Verification
+
+`npm test` checks trim bounds, dimensions, and filename handling. `npm run check` checks syntax. Browser QA uses a generated five-second synthetic video with a sine-wave audio track, no personal media. Actual Facebook integration requires approved backend deployment and server secret configuration before an end-to-end production connection can be tested.
+
+## Publishing gate
+
+The existing `.github/workflows/static.yml` deploys pushes to `main`. Do not merge or manually run it without the owner's approval. Render also deploys `main`. Development branches must remain separate from production. Review the backend `DEVELOPMENT.md` for the exact callback, env template, and release checklist.
+
+The privacy copy describes this implementation; the owner should add a public contact method before general public launch.
+
+## Browser QA results
+
+- Import generated MP4: passed; thumbnail and duration populated.
+- Refresh persistence: passed; IndexedDB content remained.
+- Trim 1.0–3.0 seconds: passed; downloaded H.264/AAC MP4 verified with ffprobe at exactly 2.000000 seconds, 640×360 with no upscaling.
+- Mute export: passed; downloaded MP4 had a video stream and no audio stream, exactly 2.000000 seconds.
+- Invalid reversed trim range: rejected with a clear error.
+- Search with no matches: correct empty state.
+- All 10 automated tests passed again after the export change.
+- End-to-end Facebook OAuth/import and mobile-device QA remain pending. Meta API permissions and video access were verified earlier in Graph API Explorer; the new production backend code has not been deployed.
+
+
+## Checkpoint — 2026-10-24: OAuth recovery and touch controls prepared
+
+Preserved the existing implementation and earlier verified import/trim/export work. Prepared changes on `development/shorty-studio`: detect a closed OAuth popup, expire a pending attempt after ten minutes, prevent duplicate pending connections, stop polling on success, and restore a usable Connect button. Library action buttons now have a minimum 44px height and width; other `.button` controls use the same minimum.
+
+Validation: all 6 local unit tests and frontend syntax checks pass. New tests cover popup closure, ten-minute expiry, and cancellation of polling after a successful connection. Previous staging checks at 320/390/768/844px showed no document overflow; these results predate the new CSS. The current changes still need live staging browser verification. The cloud browser cannot reach the local preview server; no successful browser test of unpublished CSS is claimed.
+
+Changes are not pushed or deployed because GitHub write access requires authentication. Physical Android, iPhone/Safari and tablet testing, mobile downloads/share behavior, maximum-size media and live Facebook Page imports remain pending. Do not infer physical-device compatibility from desktop iframe widths. Production and main remain unchanged.
+
+## Prepared local fix — export and file-save confirmation (2026-10-24)
+
+This proposal is on the existing local `development/shorty-studio` checkout. It has NOT been pushed, published, or deployed; live frontend remains `4ca0bc9`. Both existing draft PRs are preserved.
+
+Root cause by code inspection: the old download helper clicked a Blob anchor and returned no completion evidence, but the export handler unconditionally announced that the file was downloaded. Async encoding/storage and mobile browser save policies require separate verification; an automation timeout does not prove an encoder timeout.
+
+Prepared behavior:
+- Encoding plus successful library persistence produces `Export completed` and a separate `Save exported video` action. Encoding does not automatically request a download.
+- An explicit Save click uses the native save picker only where feature-detected in a secure context. `File saved` is emitted only after write and close both resolve.
+- Other browsers use the existing Blob/anchor mechanism and show only `Download requested`, with explicit notice that completion/cancellation cannot be confirmed.
+- Observed picker aborts are reported as cancelled or stopped by the browser. Observed request/write/close failures are reported as failures, retaining the completed library export and retry control. A native save failure offers an explicit browser-download recovery button; it does not silently fall back after cancellation/failure.
+- Concurrent save dialogs are prevented, and removing a video during an active save is blocked.
+
+Validation: 22 frontend tests pass (16 new save-flow/handler tests plus the previous 6 tests), syntax checks and `git diff --check` pass. Tests simulate DOM, worker output, storage and browser file APIs; they verify ordering and state transitions, not real mobile/browser filesystem compatibility. Previous offline bundled-FFmpeg/ffprobe results remain unchanged because encoding code was not modified.
+
+Unverified: real native picker behavior, real fallback downloads, iPhone/Safari, Android, tablets and the original browser timeout. The browser environment remains blocked by protected credential-state recovery. No new staging browser result is claimed. Native writable close confirmation establishes browser-reported write success, not a guarantee of playback or durable device backup. Browser-managed cancellation after a fallback request remains unobservable.
+
+Next approval gate: publish this reviewed development change/update the existing draft PR, then separately deploy frontend staging for browser verification. No production/main, backend, credentials, consent or paid-resource changes are part of this proposal. Source references: MDN showSaveFilePicker, FileSystemWritableFileStream.write and HTML anchor download documentation.
